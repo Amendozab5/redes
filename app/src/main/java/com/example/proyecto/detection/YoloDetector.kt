@@ -11,15 +11,12 @@ import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 
 /**
- * Envoltorio sobre TensorFlow Lite Interpreter para correr el modelo YOLO entrenado
- * por el compañero de grupo (dataset de equipos del Laboratorio de Redes, exportado
- * desde Ultralytics/Roboflow a .tflite).
- *
- * Asume el formato de salida típico de un export de Ultralytics YOLOv8/YOLO11 SIN
- * NMS incorporado: tensor de salida con forma [1, 4 + numClases, numCajas], donde
- * las primeras 4 filas son (cx, cy, w, h) y el resto son los scores por clase.
- * Si el modelo real exporta con otro formato (por ejemplo con NMS integrado),
- * ajustar el post-procesamiento de [detect].
+ * Envoltorio sobre TensorFlow Lite Interpreter para correr el modelo YOLO11n entrenado
+ * por el compañero de grupo (dataset "equipos-redes-uteq-2026", exportado desde
+ * Ultralytics a .tflite): entrada [1,3,640,640] (NCHW, detectado automáticamente),
+ * salida [1,10,8400] = 4 coords (cx,cy,w,h normalizadas 0..1) + 6 clases, sin NMS
+ * integrado (se aplica NMS manual en [detect]). Verificado directamente contra
+ * modelo_redes_uteq.tflite (metadata.json embebida y una inferencia real).
  *
  * Si no encuentra "modelPath" o "labelsPath" en assets/, [isReady] queda en false
  * y [detect] siempre devuelve una lista vacía en vez de fallar la app.
@@ -36,6 +33,10 @@ class YoloDetector(
     private var inputWidth = 640
     private var inputHeight = 640
 
+    // El export de Ultralytics puede entregar el tensor de entrada en NCHW
+    // [1, 3, H, W] o en NHWC [1, H, W, 3]; se detecta automáticamente en el init.
+    private var channelsFirst = false
+
     val isReady: Boolean get() = interpreter != null
 
     init {
@@ -44,10 +45,18 @@ class YoloDetector(
             interpreter = Interpreter(model, Interpreter.Options().apply { setNumThreads(4) })
             labels = loadLabels(context, labelsPath)
             interpreter?.getInputTensor(0)?.shape()?.let { shape ->
-                // shape esperado: [1, height, width, 3]
                 if (shape.size == 4) {
-                    inputHeight = shape[1]
-                    inputWidth = shape[2]
+                    if (shape[1] == 3) {
+                        // NCHW: [1, 3, H, W]
+                        channelsFirst = true
+                        inputHeight = shape[2]
+                        inputWidth = shape[3]
+                    } else {
+                        // NHWC: [1, H, W, 3]
+                        channelsFirst = false
+                        inputHeight = shape[1]
+                        inputWidth = shape[2]
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -130,10 +139,19 @@ class YoloDetector(
         buffer.order(ByteOrder.nativeOrder())
         val pixels = IntArray(inputWidth * inputHeight)
         bitmap.getPixels(pixels, 0, inputWidth, 0, 0, inputWidth, inputHeight)
-        for (pixel in pixels) {
-            buffer.putFloat(((pixel shr 16) and 0xFF) / 255f)
-            buffer.putFloat(((pixel shr 8) and 0xFF) / 255f)
-            buffer.putFloat((pixel and 0xFF) / 255f)
+
+        if (channelsFirst) {
+            // NCHW: primero todos los valores de R, luego todos los de G, luego todos los de B
+            for (pixel in pixels) buffer.putFloat(((pixel shr 16) and 0xFF) / 255f)
+            for (pixel in pixels) buffer.putFloat(((pixel shr 8) and 0xFF) / 255f)
+            for (pixel in pixels) buffer.putFloat((pixel and 0xFF) / 255f)
+        } else {
+            // NHWC: R, G, B intercalados por píxel
+            for (pixel in pixels) {
+                buffer.putFloat(((pixel shr 16) and 0xFF) / 255f)
+                buffer.putFloat(((pixel shr 8) and 0xFF) / 255f)
+                buffer.putFloat((pixel and 0xFF) / 255f)
+            }
         }
         buffer.rewind()
         return buffer

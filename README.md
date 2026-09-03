@@ -28,5 +28,9 @@ manuales oficiales del laboratorio.
 ## Estado actual
 
 - [x] App Android (cámara, detección, ficha técnica, chat) — compila y corre.
-- [ ] Modelo `.tflite` entrenado integrado en `assets/`.
+- [x] Modelo `.tflite` entrenado (YOLO11n, mAP50 0.995) integrado en `assets/redes_uteq.tflite`.
+      Formato de entrada verificado contra el modelo real: NCHW `[1,3,640,640]`
+      (detectado automáticamente en `YoloDetector`), salida `[1,10,8400]` sin NMS
+      integrado. Orden de clases confirmado con la metadata embebida del propio
+      `.tflite`.
 - [ ] API key y Vector Stores de OpenAI configurados.

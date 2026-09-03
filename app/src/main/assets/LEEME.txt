@@ -1,33 +1,31 @@
 Carpeta de assets del modelo de deteccion (Laboratorio de Redes y Telecomunicaciones)
 ========================================================================
 
-Cuando tu companero exporte el modelo entrenado en Colab, copia aqui:
+Estado: modelo YA integrado (2026-09-03)
+-----------------------------------------
+- redes_uteq.tflite  -> copia de modelo_redes_uteq.tflite (YOLO11n, run
+  "redes_uteq_v0", mAP50 0.995 en test).
+- labels.txt         -> ya contenia el orden correcto (verificado contra la
+  metadata.json embebida en el propio .tflite):
+  0 asa_5520, 1 catalyst_2960, 2 catalyst_3750g, 3 catalyst_8300,
+  4 catalyst_9200, 5 cisco_2800.
 
-1) redes_uteq.tflite
-   - El archivo .tflite exportado desde Ultralytics/Roboflow
-     (model.export(format="tflite")).
-   - El nombre debe coincidir con el que usa YoloDetector.kt
-     (constante MODEL_FILE), o cambia esa constante.
+Se verifico con una inferencia real (ai-edge-litert en Python) que:
+- El tensor de entrada es NCHW [1,3,640,640] (no NHWC). YoloDetector.kt ya
+  detecta esto automaticamente (channelsFirst) y empaqueta el buffer de
+  entrada en el orden correcto (todos los R, luego todos los G, luego
+  todos los B).
+- El tensor de salida es [1,10,8400] = 4 coords (cx,cy,w,h normalizadas
+  0..1) + 6 clases, sin NMS integrado (coincide con args.yaml: nms=false).
 
-2) labels.txt (ya incluido)
-   - Contiene las 6 clases detectadas por el modelo de tu companero:
-     asa_5520, catalyst_2960, catalyst_3750g, catalyst_8300,
-     catalyst_9200, cisco_2800
-   - IMPORTANTE: el ORDEN de las lineas debe coincidir EXACTO con el
-     orden de clases (indice 0, 1, 2...) que se uso al entrenar el
-     modelo (revisa el data.yaml de Roboflow o la celda de Colab que
-     imprime "names:"). Si el orden no coincide, la app mostrara
-     etiquetas equivocadas aunque la deteccion visual (el cuadro) este
-     bien ubicada.
-
-3) Verifica el formato de salida del modelo
-   - YoloDetector.kt asume la salida tipica de YOLOv8/YOLO11 exportado
-     por Ultralytics: tensor [1, 4+numClases, numCajas], con
-     coordenadas cx,cy,w,h (en pixeles de la imagen de entrada o
-     normalizadas 0-1; el codigo detecta cual de los dos casos aplica).
-   - Si el export de tu companero usa otro formato (por ejemplo con
-     NMS ya integrado, salida [1, numDetecciones, 6]), avisa para
-     ajustar el post-procesamiento en YoloDetector.kt.
+Si en el futuro se entrena una version nueva del modelo (mas equipos, mas
+fotos, etc.):
+1. Reemplazar redes_uteq.tflite por el nuevo archivo.
+2. Actualizar labels.txt si cambia el orden/numero de clases (revisar la
+   metadata.json embebida en el nuevo .tflite, o el data.yaml de Roboflow).
+3. Si el nuevo export cambia el formato de entrada/salida (por ejemplo si
+   se activa NMS integrado al exportar), avisar para ajustar
+   YoloDetector.kt.
 
 Vector Stores de OpenAI (para el chat con RAG)
 -----------------------------------------------
