@@ -15,6 +15,8 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.proyecto.databinding.ActivityMainBinding
 import com.example.proyecto.detection.DetectedChipAdapter
@@ -48,6 +50,24 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // La app dibuja edge-to-edge (targetSdk 35+): sin esto, el titulo
+        // superior queda tapado por la hora/iconos de la barra de estado y
+        // la fila de chips por la barra de navegacion del sistema.
+        val paddingTituloBase = dpToPx(12)
+        val paddingChipsBase = dpToPx(8)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            binding.txtTitulo.setPadding(
+                binding.txtTitulo.paddingLeft, systemBars.top + paddingTituloBase,
+                binding.txtTitulo.paddingRight, paddingTituloBase
+            )
+            binding.rcDetectados.setPadding(
+                binding.rcDetectados.paddingLeft, paddingChipsBase,
+                binding.rcDetectados.paddingRight, systemBars.bottom + paddingChipsBase
+            )
+            insets
+        }
 
         detector = YoloDetector(this)
         if (!detector.isReady) {
@@ -143,6 +163,8 @@ class MainActivity : AppCompatActivity() {
             Bitmap.createBitmap(bitmapConRelleno, 0, 0, imageProxy.width, imageProxy.height)
         }
     }
+
+    private fun dpToPx(dp: Int): Int = (dp * resources.displayMetrics.density).toInt()
 
     private fun rotarBitmap(bitmap: Bitmap, grados: Int): Bitmap {
         if (grados == 0) return bitmap

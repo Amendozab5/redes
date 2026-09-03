@@ -33,7 +33,11 @@ class ChatActivity : AppCompatActivity() {
 
         val clase = intent.getStringExtra(EXTRA_CLASE_EQUIPO)
         val equipo = EquipoRepository.porClase(clase)
-        binding.toolbar.title = "Asistente: ${equipo?.nombre ?: "equipo no reconocido"}"
+        // Se asigna via supportActionBar (no binding.toolbar.title): al usar
+        // setSupportActionBar(), AppCompat vuelve a aplicar su propio titulo
+        // cacheado sobre el Toolbar despues de onCreate, y pisa cualquier
+        // binding.toolbar.title asignado directamente.
+        supportActionBar?.title = "Asistente: ${equipo?.nombre ?: "equipo no reconocido"}"
 
         adapter = ChatAdapter(mensajes)
         binding.rcChat.layoutManager = LinearLayoutManager(this)

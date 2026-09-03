@@ -24,8 +24,12 @@ class FichaTecnicaActivity : AppCompatActivity() {
         val clase = intent.getStringExtra(EXTRA_CLASE_EQUIPO)
         val equipo = EquipoRepository.porClase(clase)
 
+        // Se asigna via supportActionBar (no binding.toolbar.title): al usar
+        // setSupportActionBar(), AppCompat vuelve a aplicar su propio titulo
+        // cacheado sobre el Toolbar despues de onCreate, y pisa cualquier
+        // binding.toolbar.title asignado directamente.
         if (equipo == null) {
-            binding.toolbar.title = "Equipo no reconocido"
+            supportActionBar?.title = "Equipo no reconocido"
             binding.txtCategoria.text = ""
             binding.txtFuncion.text =
                 "No se encontró información para la clase \"$clase\" en EquipoRepository."
@@ -33,7 +37,7 @@ class FichaTecnicaActivity : AppCompatActivity() {
             return
         }
 
-        binding.toolbar.title = equipo.nombre
+        supportActionBar?.title = equipo.nombre
         binding.txtCategoria.text = equipo.categoria
         binding.txtFuncion.text = equipo.funcion
         binding.txtComponentes.text = equipo.componentes.joinToString("\n") { "• $it" }
