@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Proyecto</string>
+
+    <string name="titulo_deteccion">Laboratorio de Redes y Telecomunicaciones — toca un equipo detectado</string>
+    <string name="seccion_funcion">Función</string>
+    <string name="seccion_componentes">Componentes principales</string>
+    <string name="seccion_procedimiento">Procedimiento básico de uso</string>
+    <string name="seccion_epp">Elementos de protección personal</string>
+    <string name="seccion_riesgos">Riesgos asociados</string>
+    <string name="seccion_practicas">Prácticas académicas relacionadas</string>
+    <string name="preguntar_asistente">Preguntar al asistente</string>
+    <string name="hint_pregunta">Escribe tu pregunta sobre este equipo…</string>
+    <string name="enviar">Enviar</string>
+</resources>

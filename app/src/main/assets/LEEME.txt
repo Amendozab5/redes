@@ -1,0 +1,37 @@
+Carpeta de assets del modelo de deteccion (Laboratorio de Redes y Telecomunicaciones)
+========================================================================
+
+Cuando tu companero exporte el modelo entrenado en Colab, copia aqui:
+
+1) redes_uteq.tflite
+   - El archivo .tflite exportado desde Ultralytics/Roboflow
+     (model.export(format="tflite")).
+   - El nombre debe coincidir con el que usa YoloDetector.kt
+     (constante MODEL_FILE), o cambia esa constante.
+
+2) labels.txt (ya incluido)
+   - Contiene las 6 clases detectadas por el modelo de tu companero:
+     asa_5520, catalyst_2960, catalyst_3750g, catalyst_8300,
+     catalyst_9200, cisco_2800
+   - IMPORTANTE: el ORDEN de las lineas debe coincidir EXACTO con el
+     orden de clases (indice 0, 1, 2...) que se uso al entrenar el
+     modelo (revisa el data.yaml de Roboflow o la celda de Colab que
+     imprime "names:"). Si el orden no coincide, la app mostrara
+     etiquetas equivocadas aunque la deteccion visual (el cuadro) este
+     bien ubicada.
+
+3) Verifica el formato de salida del modelo
+   - YoloDetector.kt asume la salida tipica de YOLOv8/YOLO11 exportado
+     por Ultralytics: tensor [1, 4+numClases, numCajas], con
+     coordenadas cx,cy,w,h (en pixeles de la imagen de entrada o
+     normalizadas 0-1; el codigo detecta cual de los dos casos aplica).
+   - Si el export de tu companero usa otro formato (por ejemplo con
+     NMS ya integrado, salida [1, numDetecciones, 6]), avisa para
+     ajustar el post-procesamiento en YoloDetector.kt.
+
+Vector Stores de OpenAI (para el chat con RAG)
+-----------------------------------------------
+En EquipoRepository.kt cada Equipo tiene un campo "vectorStoreId" vacio.
+Cuando crees en https://platform.openai.com el Vector Store con los
+manuales/guias de cada equipo, copia su ID (empieza con "vs_...") en
+el equipo correspondiente.

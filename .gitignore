@@ -1,0 +1,23 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Material del curso (diapositivas/practicas del docente y companeros) --
+# no son parte del proyecto Android y no deben publicarse (derechos de
+# autor + datos personales de terceros en algunos PDF).
+/archivo_*.pdf
+/archivo_*.pptx
+/recursoSilaboSemanal_*.pdf
+/recursoSilaboSemanal_*.pptx

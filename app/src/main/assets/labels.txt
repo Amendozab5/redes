@@ -1,0 +1,6 @@
+asa_5520
+catalyst_2960
+catalyst_3750g
+catalyst_8300
+catalyst_9200
+cisco_2800
