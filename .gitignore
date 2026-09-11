@@ -21,3 +21,8 @@ local.properties
 /archivo_*.pptx
 /recursoSilaboSemanal_*.pdf
 /recursoSilaboSemanal_*.pptx
+
+# IntelliJ/Android Studio - archivo local de markdown
+.idea/markdown.xml
+
+preguntas_demo_redes_uteq.pdf
