@@ -1,7 +1,16 @@
 <resources>
-    <string name="app_name">Proyecto</string>
+    <string name="app_name">Redes UTEQ</string>
 
-    <string name="titulo_deteccion">Laboratorio de Redes y Telecomunicaciones — toca un equipo detectado</string>
+    <string name="titulo_app">Redes UTEQ · Detector</string>
+    <string name="subtitulo_app">Laboratorio de Redes y Telecomunicaciones · IA</string>
+    <string name="en_vivo">EN VIVO</string>
+    <string name="equipos_detectados">Equipos detectados</string>
+    <string name="sin_detecciones">Apunta la cámara a un equipo del rack</string>
+    <string name="que_es_y_como_se_usa">¿Qué es y cómo se usa?</string>
+    <string name="asistente_inteligente">Asistente inteligente</string>
+    <string name="asistente_descripcion">Pregunta sobre función, operación, seguridad o mantenimiento del equipo seleccionado.</string>
+    <string name="abrir_asistente">Abrir asistente</string>
+
     <string name="seccion_funcion">Función</string>
     <string name="seccion_componentes">Componentes principales</string>
     <string name="seccion_procedimiento">Procedimiento básico de uso</string>
@@ -11,4 +20,6 @@
     <string name="preguntar_asistente">Preguntar al asistente</string>
     <string name="hint_pregunta">Escribe tu pregunta sobre este equipo…</string>
     <string name="enviar">Enviar</string>
+    <string name="hablar">Preguntar por voz</string>
+    <string name="escuchando">Escuchando… habla ahora</string>
 </resources>

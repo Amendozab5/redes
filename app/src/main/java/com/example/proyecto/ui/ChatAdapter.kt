@@ -30,8 +30,11 @@ class ChatAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val mensaje = mensajes[position]
         when (holder) {
+            // El mensaje del usuario se muestra literal: es lo que escribió o dictó.
             is UsuarioViewHolder -> holder.binding.txtMensaje.text = mensaje.texto
-            is BotViewHolder -> holder.binding.txtMensaje.text = mensaje.texto
+            // La respuesta del modelo viene en Markdown y se renderiza con estilos.
+            is BotViewHolder ->
+                holder.binding.txtMensaje.text = MarkdownLigero.aTextoConEstilo(mensaje.texto)
         }
     }
 

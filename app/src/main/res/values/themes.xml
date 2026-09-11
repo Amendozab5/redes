@@ -1,8 +1,16 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.Proyecto" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!--
+            Sin estos colores, Material3 aplica su paleta morada por defecto y la
+            barra superior de la ficha y del chat no combina con el azul de la
+            pantalla de detección.
+        -->
+        <item name="colorPrimary">@color/acento</item>
+        <item name="colorPrimaryDark">@color/acento_oscuro</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/verde_suave</item>
+        <item name="colorOnSecondary">@color/white</item>
     </style>
 
     <style name="Theme.Proyecto" parent="Base.Theme.Proyecto" />

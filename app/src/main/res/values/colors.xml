@@ -2,4 +2,26 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Paleta de la app -->
+    <color name="fondo_panel">#F2FFFFFF</color>
+    <color name="fondo_header">#B3101418</color>
+    <color name="texto_principal">#FF10151C</color>
+    <color name="texto_secundario">#FF5B6672</color>
+    <color name="acento">#FF2563EB</color>
+    <color name="acento_oscuro">#FF1D4ED8</color>
+    <color name="verde_vivo">#FF00C853</color>
+    <color name="verde_suave">#FF10B981</color>
+    <color name="borde_suave">#22000000</color>
+
+    <!-- Colores de las cajas por clase (mismo orden que labels.txt) -->
+    <color name="clase_0">#FFEF4444</color>
+    <color name="clase_1">#FFF59E0B</color>
+    <color name="clase_2">#FF10B981</color>
+    <color name="clase_3">#FF3B82F6</color>
+    <color name="clase_4">#FFA855F7</color>
+    <color name="clase_5">#FF06B6D4</color>
+    <color name="clase_6">#FFEC4899</color>
+    <color name="clase_7">#FF84CC16</color>
+    <color name="clase_8">#FFF97316</color>
 </resources>
