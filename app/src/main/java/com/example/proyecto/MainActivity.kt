@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -18,17 +19,22 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.proyecto.data.EquipoRepository
 import com.example.proyecto.databinding.ActivityMainBinding
 import com.example.proyecto.detection.DetectedChipAdapter
 import com.example.proyecto.detection.YoloDetector
+import com.example.proyecto.ui.ChatActivity
 import com.example.proyecto.ui.FichaTecnicaActivity
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
  * Pantalla principal: cámara en vivo + detección en tiempo real de equipos del
- * Laboratorio de Redes y Telecomunicaciones. Al tocar un chip de equipo detectado
- * se abre su ficha técnica (y desde ahí, el chat con el asistente RAG).
+ * Laboratorio de Redes y Telecomunicaciones.
+ *
+ * El panel inferior muestra los equipos detectados como chips (nombre + % de
+ * confianza). Al tocar un chip se selecciona ese equipo, y desde ahí se abre su
+ * ficha técnica o el asistente inteligente (LLM + RAG).
  */
 class MainActivity : AppCompatActivity() {
 
@@ -37,12 +43,30 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var chipAdapter: DetectedChipAdapter
 
+    /** Clase del equipo que el usuario tiene seleccionado (o la última detectada). */
+    private var claseSeleccionada: String? = null
+
+    /**
+     * La detección corre a ~10 fps, pero refrescar los chips a esa velocidad los
+     * hace parpadear y hace imposible tocarlos. Los cuadros del overlay sí se
+     * actualizan en cada frame; la lista de chips solo cada INTERVALO_UI_MS.
+     */
+    private var ultimaActualizacionChips = 0L
+
+    private companion object {
+        const val INTERVALO_UI_MS = 400L
+    }
+
     private val permisoCamaraLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { concedido ->
             if (concedido) {
                 iniciarCamara()
             } else {
-                Toast.makeText(this, "Se requiere permiso de cámara para detectar equipos", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this,
+                    "Se requiere permiso de cámara para detectar equipos",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
 
@@ -51,23 +75,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // La app dibuja edge-to-edge (targetSdk 35+): sin esto, el titulo
-        // superior queda tapado por la hora/iconos de la barra de estado y
-        // la fila de chips por la barra de navegacion del sistema.
-        val paddingTituloBase = dpToPx(12)
-        val paddingChipsBase = dpToPx(8)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            binding.txtTitulo.setPadding(
-                binding.txtTitulo.paddingLeft, systemBars.top + paddingTituloBase,
-                binding.txtTitulo.paddingRight, paddingTituloBase
-            )
-            binding.rcDetectados.setPadding(
-                binding.rcDetectados.paddingLeft, paddingChipsBase,
-                binding.rcDetectados.paddingRight, systemBars.bottom + paddingChipsBase
-            )
-            insets
-        }
+        aplicarInsets()
 
         detector = YoloDetector(this)
         if (!detector.isReady) {
@@ -80,19 +88,79 @@ class MainActivity : AppCompatActivity() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
-        chipAdapter = DetectedChipAdapter { clase ->
+        chipAdapter = DetectedChipAdapter { clase -> seleccionar(clase) }
+        binding.rcDetectados.layoutManager =
+            LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        binding.rcDetectados.adapter = chipAdapter
+
+        binding.btFicha.setOnClickListener {
+            val clase = claseSeleccionada ?: return@setOnClickListener
             startActivity(
                 Intent(this, FichaTecnicaActivity::class.java)
                     .putExtra(FichaTecnicaActivity.EXTRA_CLASE_EQUIPO, clase)
             )
         }
-        binding.rcDetectados.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        binding.rcDetectados.adapter = chipAdapter
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        binding.btAsistente.setOnClickListener {
+            val clase = claseSeleccionada ?: return@setOnClickListener
+            startActivity(
+                Intent(this, ChatActivity::class.java)
+                    .putExtra(ChatActivity.EXTRA_CLASE_EQUIPO, clase)
+            )
+        }
+
+        actualizarAcciones()
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
             iniciarCamara()
         } else {
             permisoCamaraLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    /**
+     * La app dibuja edge-to-edge (targetSdk 35+): sin esto, la cabecera queda
+     * tapada por la barra de estado y el panel inferior por la de navegación.
+     */
+    private fun aplicarInsets() {
+        val margenHeaderBase = dpToPx(12)
+        val paddingPanelBase = dpToPx(10)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            (binding.header.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.let { lp ->
+                lp.topMargin = systemBars.top + margenHeaderBase
+                binding.header.layoutParams = lp
+            }
+            binding.panelInferior.setPadding(
+                binding.panelInferior.paddingLeft,
+                binding.panelInferior.paddingTop,
+                binding.panelInferior.paddingRight,
+                systemBars.bottom + paddingPanelBase
+            )
+            insets
+        }
+    }
+
+    private fun seleccionar(clase: String) {
+        claseSeleccionada = clase
+        actualizarAcciones()
+    }
+
+    /** Habilita/deshabilita los botones y actualiza el texto de la selección. */
+    private fun actualizarAcciones() {
+        val clase = claseSeleccionada
+        val habilitado = clase != null
+        binding.btFicha.isEnabled = habilitado
+        binding.btFicha.alpha = if (habilitado) 1f else 0.45f
+        binding.btAsistente.isEnabled = habilitado
+        binding.btAsistente.alpha = if (habilitado) 1f else 0.45f
+
+        binding.txtSeleccion.text = if (clase == null) {
+            getString(R.string.sin_detecciones)
+        } else {
+            EquipoRepository.porClase(clase)?.nombre ?: clase
         }
     }
 
@@ -113,7 +181,9 @@ class MainActivity : AppCompatActivity() {
 
             try {
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageAnalysis)
+                cameraProvider.bindToLifecycle(
+                    this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageAnalysis
+                )
             } catch (e: Exception) {
                 Toast.makeText(this, "Error iniciando la cámara: ${e.message}", Toast.LENGTH_LONG).show()
             }
@@ -128,9 +198,38 @@ class MainActivity : AppCompatActivity() {
         try {
             val bitmap = rotarBitmap(imageProxyToBitmap(imageProxy), imageProxy.imageInfo.rotationDegrees)
             val detecciones = detector.detect(bitmap)
+
+            // Una entrada por clase, con la mejor confianza del frame, de mayor a menor.
+            val porClase = detecciones
+                .groupBy { it.label }
+                .map { (clase, lista) ->
+                    DetectedChipAdapter.Item(clase, lista.maxOf { it.confidence })
+                }
+                .sortedByDescending { it.confianza }
+
+            val ahora = System.currentTimeMillis()
+            val tocaRefrescarChips = ahora - ultimaActualizacionChips >= INTERVALO_UI_MS
+
             runOnUiThread {
-                binding.overlay.setDetections(detecciones, bitmap.width, bitmap.height)
-                chipAdapter.actualizar(detecciones.map { it.label })
+                binding.overlay.setDetections(
+                    detecciones, bitmap.width, bitmap.height, claseSeleccionada
+                )
+
+                if (tocaRefrescarChips) {
+                    ultimaActualizacionChips = ahora
+
+                    // Si no hay nada seleccionado todavía, se preselecciona la
+                    // detección más confiable para que los botones sirvan de una.
+                    if (claseSeleccionada == null && porClase.isNotEmpty()) {
+                        claseSeleccionada = porClase.first().clase
+                        actualizarAcciones()
+                    }
+
+                    binding.txtContador.text = porClase.size.toString()
+                    binding.txtContador.visibility =
+                        if (porClase.isEmpty()) View.INVISIBLE else View.VISIBLE
+                    chipAdapter.actualizar(porClase, claseSeleccionada)
+                }
             }
         } catch (e: Exception) {
             // Se descarta un frame fallido para no interrumpir la vista en vivo.

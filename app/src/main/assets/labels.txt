@@ -1,6 +1,9 @@
 asa_5520
 catalyst_2960
 catalyst_3750g
-catalyst_8300
+catalyst_8200
 catalyst_9200
 cisco_2800
+grandstream_ucm
+nexxt_switch
+telefono_yealink

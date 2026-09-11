@@ -1,31 +1,63 @@
 Carpeta de assets del modelo de deteccion (Laboratorio de Redes y Telecomunicaciones)
 ========================================================================
 
-Estado: modelo YA integrado (2026-09-03)
+Estado: modelo v2 integrado (2026-09-10)
 -----------------------------------------
-- redes_uteq.tflite  -> copia de modelo_redes_uteq.tflite (YOLO11n, run
-  "redes_uteq_v0", mAP50 0.995 en test).
-- labels.txt         -> ya contenia el orden correcto (verificado contra la
-  metadata.json embebida en el propio .tflite):
-  0 asa_5520, 1 catalyst_2960, 2 catalyst_3750g, 3 catalyst_8300,
-  4 catalyst_9200, 5 cisco_2800.
+- redes_uteq.tflite  -> YOLO11n, run "redes_uteq_v2".
+                        Dataset: 206 imagenes fusionadas (60 de agosto + 146 de
+                        septiembre), 9 clases, 1058 cajas.
+                        mAP50 0.985 / mAP50-95 0.771 en validacion (41 imagenes).
+- labels.txt         -> 9 clases, en el orden alfabetico que usa data.yaml:
+  0 asa_5520, 1 catalyst_2960, 2 catalyst_3750g, 3 catalyst_8200,
+  4 catalyst_9200, 5 cisco_2800, 6 grandstream_ucm, 7 nexxt_switch,
+  8 telefono_yealink.
 
-Se verifico con una inferencia real (ai-edge-litert en Python) que:
-- El tensor de entrada es NCHW [1,3,640,640] (no NHWC). YoloDetector.kt ya
-  detecta esto automaticamente (channelsFirst) y empaqueta el buffer de
-  entrada en el orden correcto (todos los R, luego todos los G, luego
-  todos los B).
-- El tensor de salida es [1,10,8400] = 4 coords (cx,cy,w,h normalizadas
-  0..1) + 6 clases, sin NMS integrado (coincide con args.yaml: nms=false).
+CAMBIO IMPORTANTE respecto al modelo v0
+----------------------------------------
+La clase "catalyst_8300" NO EXISTE: el equipo real del rack FYTEC es un
+Catalyst 8200 (se leyo "C8200L-1N-4T" en la serigrafia del chasis). Se
+renombro a "catalyst_8200" en labels.txt y en EquipoRepository.kt.
+Si aparece "catalyst_8300" en algun archivo viejo, es el nombre equivocado.
 
-Si en el futuro se entrena una version nueva del modelo (mas equipos, mas
-fotos, etc.):
-1. Reemplazar redes_uteq.tflite por el nuevo archivo.
-2. Actualizar labels.txt si cambia el orden/numero de clases (revisar la
-   metadata.json embebida en el nuevo .tflite, o el data.yaml de Roboflow).
-3. Si el nuevo export cambia el formato de entrada/salida (por ejemplo si
-   se activa NMS integrado al exportar), avisar para ajustar
-   YoloDetector.kt.
+Formato de tensores (verificado en el log del export)
+-----------------------------------------------------
+- Entrada: NCHW [1, 3, 640, 640], float32 normalizado 0..1.
+  YoloDetector.kt lo detecta solo (channelsFirst) y empaqueta el buffer en el
+  orden correcto (todos los R, luego todos los G, luego todos los B).
+- Salida:  [1, 13, 8400] = 4 coords (cx,cy,w,h) + 9 clases, SIN NMS integrado.
+  YoloDetector.kt calcula numClasses = numAttrs - 4, asi que soporta cualquier
+  numero de clases sin tocar codigo. El NMS se aplica a mano en detect().
+
+Limitaciones conocidas del modelo v2
+-------------------------------------
+- telefono_yealink es la clase con menos datos (41 cajas). Su metrica es
+  ruidosa y conviene reforzarla en la proxima captura.
+- El dataset es casi todo "rack completo, de frente, distancia media". En
+  primeros planos con cables por delante el modelo se degrada: puede confundir
+  catalyst_8200 con catalyst_3750g o no detectar el switch inferior.
+  Si se nota en el celular, bajar confidenceThreshold de 0.5f a 0.4f en
+  YoloDetector.kt.
+- Es un detector CERRADO de 9 clases: un equipo fuera del catalogo se asigna a
+  la clase mas parecida. Ej.: un telefono Grandstream GXP1400 se reporta como
+  telefono_yealink.
+
+Pendiente en Roboflow (proyecto equipos-redes-uteq-2026)
+---------------------------------------------------------
+El proyecto tiene 310 imagenes etiquetadas, pero los creditos del plan gratuito
+se agotaron antes de poder generar la version. Se renuevan el 30 de septiembre.
+Al renovarse: generar la version (70/20/10, Auto-Orient + Resize Fit 640x640,
+augmentacion apagada) y reentrenar. Eso agrega 104 imagenes ya etiquetadas
+(44 primeros planos del rack Grandstream + 60 del rack FYTEC en angulo oblicuo)
+que triplican asa_5520 y catalyst_3750g.
+
+Si en el futuro se entrena una version nueva
+---------------------------------------------
+1. Reemplazar redes_uteq.tflite por el nuevo archivo (mismo nombre).
+2. Actualizar labels.txt con el orden de names en data.yaml.
+3. Agregar las clases nuevas a EquipoRepository.kt, o su chip abrira una ficha
+   vacia.
+4. YoloDetector.kt NO necesita cambios mientras el export siga sin NMS
+   integrado (nms=false, que es el valor por defecto).
 
 Vector Stores de OpenAI (para el chat con RAG)
 -----------------------------------------------
